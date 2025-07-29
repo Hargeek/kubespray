@@ -1,0 +1,77 @@
+---
+# 打印所有Ansible变量的playbook
+- name: Print All Variables
+  hosts: all
+  gather_facts: false
+  tasks:
+    # 打印所有变量
+    - name: 打印所有变量
+      debug:
+        var: hostvars[inventory_hostname]
+      run_once: true
+      delegate_to: localhost
+      connection: local
+
+    # 按类别打印变量
+    - name: 打印Kubernetes相关变量
+      debug:
+        msg: |
+          Kubernetes变量:
+          - kube_version: {{ kube_version }}
+          - kube_network_plugin: {{ kube_network_plugin }}
+          - kube_service_addresses: {{ kube_service_addresses }}
+          - kube_pods_subnet: {{ kube_pods_subnet }}
+          - kube_apiserver_port: {{ kube_apiserver_port }}
+          - kube_apiserver_bind_address: {{ kube_apiserver_bind_address }}
+
+    - name: 打印容器引擎变量
+      debug:
+        msg: |
+          容器引擎变量:
+          - container_manager: {{ container_manager }}
+          - containerd_version: {{ containerd_version }}
+          - docker_version: {{ docker_version }}
+
+    - name: 打印网络插件变量
+      debug:
+        msg: |
+          网络插件变量:
+          - kube_network_plugin: {{ kube_network_plugin }}
+          - cilium_version: {{ cilium_version | default('未定义') }}
+          - calico_version: {{ calico_version | default('未定义') }}
+          - flannel_version: {{ flannel_version | default('未定义') }}
+
+    - name: 打印etcd变量
+      debug:
+        msg: |
+          etcd变量:
+          - etcd_version: {{ etcd_version }}
+          - etcd_events_cluster_setup: {{ etcd_events_cluster_setup | default('未定义') }}
+
+    - name: 打印系统变量
+      debug:
+        msg: |
+          系统变量:
+          - ansible_user: {{ ansible_user }}
+          - ansible_ssh_private_key_file: {{ ansible_ssh_private_key_file }}
+          - bin_dir: {{ bin_dir }}
+          - kube_config_dir: {{ kube_config_dir }}
+
+    - name: 打印集群配置变量
+      debug:
+        msg: |
+          集群配置变量:
+          - cluster_name: {{ cluster_name }}
+          - dns_domain: {{ dns_domain }}
+          - kubelet_max_pods: {{ kubelet_max_pods }}
+          - kube_network_node_prefix: {{ kube_network_node_prefix }}
+
+    # 打印变量来源信息
+    - name: 打印变量来源
+      debug:
+        msg: |
+          变量来源信息:
+          - 主机: {{ inventory_hostname }}
+          - 所属组: {{ group_names }}
+          - 主机变量数量: {{ hostvars[inventory_hostname] | length }}
+          - 所有变量键: {{ hostvars[inventory_hostname].keys() | list }}

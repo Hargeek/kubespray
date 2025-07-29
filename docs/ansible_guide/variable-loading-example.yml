@@ -1,0 +1,52 @@
+# Ansible变量加载机制示例
+
+## 1. 变量优先级示例
+
+# 最低优先级: role defaults
+# roles/kubespray-defaults/defaults/main/main.yml
+# container_manager: containerd  # 默认值
+
+# 中等优先级: group_vars
+# inventory/cluster01/group_vars/all/all.yml
+# container_manager: docker      # 覆盖默认值
+
+# 高优先级: host_vars
+# inventory/cluster01/host_vars/master1.yml
+# container_manager: crio        # 主机特定值
+
+# 最高优先级: extra vars
+# ansible-playbook -e "container_manager=docker"
+# container_manager: docker      # 命令行覆盖
+
+## 2. 组变量继承示例
+
+# group_vars/all/all.yml (适用于所有主机)
+# ansible_user: root
+# ansible_ssh_private_key_file: /root/.ssh/id_rsa
+
+# group_vars/k8s_cluster/k8s-cluster.yml (适用于k8s_cluster组)
+# kube_network_plugin: cilium
+# kube_version: v1.31.4
+
+# group_vars/kube_control_plane/kube_control_plane.yml (仅适用于控制平面)
+# kube_control_plane_enabled: true
+
+## 3. 变量合并规则
+
+# 如果多个文件定义相同变量，后面的会覆盖前面的
+# 例如:
+# 1. all.yml: container_manager: containerd
+# 2. k8s_cluster.yml: container_manager: docker
+# 结果: container_manager = docker
+
+## 4. 实际加载顺序
+
+# 1. 加载 role defaults
+# 2. 加载 inventory group_vars (按字母顺序)
+# 3. 加载 inventory host_vars
+# 4. 加载 playbook group_vars
+# 5. 加载 playbook host_vars
+# 6. 加载 host facts
+# 7. 加载 registered vars
+# 8. 加载 set_fact
+# 9. 加载 extra vars

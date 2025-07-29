@@ -1,0 +1,9 @@
+services:
+  ansible:
+    network_mode: host
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+    volumes:
+      - ${HOME}/Downloads/sre-test.pem:/root/.ssh/id_rsa

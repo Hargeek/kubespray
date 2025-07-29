@@ -1,0 +1,37 @@
+---
+# 调试Ansible变量的playbook
+- name: Debug Variables
+  hosts: all
+  gather_facts: false
+  tasks:
+    # 查看特定变量
+    - name: 查看特定变量值
+      debug:
+        msg: "kube_version = {{ kube_version }}"
+    
+    # 查看多个变量
+    - name: 查看多个变量
+      debug:
+        msg: |
+          kube_version: {{ kube_version }}
+          kube_network_plugin: {{ kube_network_plugin }}
+          container_manager: {{ container_manager }}
+    
+    # 查看所有变量
+    - name: 查看所有变量
+      debug:
+        var: hostvars[inventory_hostname]
+    
+    # 查看特定组的变量
+    - name: 查看k8s_cluster组变量
+      debug:
+        var: hostvars[inventory_hostname]
+      when: "'k8s_cluster' in group_names"
+    
+    # 查看变量来源
+    - name: 查看变量来源
+      debug:
+        msg: |
+          主机: {{ inventory_hostname }}
+          所属组: {{ group_names }}
+          变量来源: {{ hostvars[inventory_hostname] | dict2items(key_name='key', value_name='value') | selectattr('key', 'match', '^kube_') | list }}
