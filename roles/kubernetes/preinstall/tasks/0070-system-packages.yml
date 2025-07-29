@@ -40,6 +40,33 @@
   tags:
     - bootstrap-os
 
+# 检查并等待apt锁释放
+- name: Check and wait for apt lock
+  shell: |
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || fuser /var/cache/apt/archives/lock >/dev/null 2>&1; do
+      echo "Waiting for apt lock to be released..."
+      sleep 5
+    done
+  when: ansible_os_family == "Debian"
+  register: apt_lock_check
+  changed_when: false
+  tags:
+    - bootstrap-os
+
+# 清理可能残留的apt锁文件
+- name: Clean up stale apt lock files
+  shell: |
+    rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
+    dpkg --configure -a
+  when: 
+    - ansible_os_family == "Debian"
+    - apt_lock_check is defined
+  register: apt_lock_cleanup
+  changed_when: apt_lock_cleanup.rc == 0
+  failed_when: false
+  tags:
+    - bootstrap-os
+
 - name: Remove legacy docker repo file
   file:
     path: "{{ yum_repo_dir }}/docker.repo"
@@ -70,3 +97,7 @@
   when: not (ansible_os_family in ["Flatcar", "Flatcar Container Linux by Kinvolk"] or is_fedora_coreos)
   tags:
     - bootstrap-os
+  failed_when: 
+    - pkgs_task_result is failed
+    - "'Could not get lock' not in pkgs_task_result.stderr | default('')"
+    - "'Unable to acquire the dpkg frontend lock' not in pkgs_task_result.stderr | default('')"

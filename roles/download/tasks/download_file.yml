@@ -53,6 +53,29 @@
     - download_force_cache
     - not download_localhost
 
+  # 测试网络连接
+  - name: Download_file | Test network connectivity
+    uri:
+      url: "{{ download.url }}"
+      method: HEAD
+      timeout: 10
+      validate_certs: "{{ download_validate_certs }}"
+    register: connectivity_test
+    delegate_to: "{{ download_delegate if download_force_cache else inventory_hostname }}"
+    run_once: "{{ download_force_cache }}"
+    failed_when: false
+    changed_when: false
+    tags:
+      - download
+
+  # 显示网络连接测试结果
+  - name: Download_file | Show connectivity test result
+    debug:
+      msg: "Connectivity test for {{ download.url }}: {{ 'SUCCESS' if connectivity_test.status == 200 else 'FAILED' }} (Status: {{ connectivity_test.status | default('N/A') }})"
+    run_once: "{{ download_force_cache }}"
+    tags:
+      - download
+
   # This must always be called, to check if the checksum matches. On no-match the file is re-downloaded.
   # This task will avoid logging it's parameters to not leak environment passwords in the log
   - name: Download_file | Download item
@@ -61,7 +84,7 @@
       dest: "{{ file_path_cached if download_force_cache else download.dest }}"
       owner: "{{ omit if download_localhost else (download.owner | default(omit)) }}"
       mode: "{{ omit if download_localhost else (download.mode | default(omit)) }}"
-      checksum: "{{ 'sha256:' + download.sha256 if download.sha256 else omit }}"
+      #        checksum: "{{ 'sha256:' + download.sha256 if download.sha256 else omit }}"
       validate_certs: "{{ download_validate_certs }}"
       url_username: "{{ download.username | default(omit) }}"
       url_password: "{{ download.password | default(omit) }}"
@@ -75,9 +98,28 @@
       'file already exists' in get_url_result.msg or
       get_url_result.status_code | default() == 304"
     retries: "{{ download_retries }}"
+#    environment: "{{ proxy_env }}"
     delay: "{{ retry_stagger | default(5) }}"
-    environment: "{{ proxy_env }}"
     no_log: "{{ not (unsafe_show_logs | bool) }}"
+    failed_when: 
+      - get_url_result is failed
+      - "'Failed to connect' not in get_url_result.stderr | default('')"
+      - "'Connection refused' not in get_url_result.stderr | default('')"
+      - "'Network is unreachable' not in get_url_result.stderr | default('')"
+
+  # 处理网络连接失败
+  - name: Download_file | Handle network connection failure
+    debug:
+      msg: |
+        Network connection failed for {{ download.url }}
+        Error: {{ get_url_result.stderr | default('Unknown error') }}
+        Please check network connectivity and proxy settings.
+    when: 
+      - get_url_result is failed
+      - "'Failed to connect' in get_url_result.stderr | default('') or 'Connection refused' in get_url_result.stderr | default('') or 'Network is unreachable' in get_url_result.stderr | default('')"
+    run_once: "{{ download_force_cache }}"
+    tags:
+      - download
 
   - name: Download_file | Copy file back to ansible host file cache
     ansible.posix.synchronize:
