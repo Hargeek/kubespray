@@ -6,4 +6,4 @@ services:
       dockerfile: Dockerfile
       network: host
     volumes:
-      - ${HOME}/Downloads/sre-test.pem:/root/.ssh/id_rsa
+      - ${HOME}/.ssh/ecs.pem:/root/.ssh/id_rsa

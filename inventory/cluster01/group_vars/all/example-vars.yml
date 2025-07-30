@@ -1,0 +1,27 @@
+---
+# 示例：变量加载机制演示
+
+# 这个文件演示了Ansible如何加载和合并变量
+
+# 1. 基础配置（适用于所有主机）
+example_var: "来自 all/example-vars.yml"
+container_manager: "containerd"
+
+# 2. 可以被其他文件覆盖的变量
+network_plugin: "calico"
+kube_version: "v1.31.4"
+
+# 3. 条件变量
+enable_monitoring: false
+enable_logging: true
+
+# 4. 列表变量
+dns_servers:
+  - "8.8.8.8"
+  - "8.8.4.4"
+
+# 5. 字典变量
+cluster_config:
+  name: "my-cluster"
+  domain: "cluster.local"
+  pod_subnet: "10.233.64.0/18"
